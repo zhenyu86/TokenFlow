@@ -1,5 +1,5 @@
 import os
-from settings import (
+from .settings import (
     PROJECT_NAME,
     PROJECT_SHORT_NAME,
     RESOURCE_TYPE,
