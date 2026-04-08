@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}{{ ui_text.call_logs }} - {{ project_name }}{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>{{ ui_text.call_logs }} - {{ api_key.name }}</h1>
+        <a href="{{ url_for('user.api_keys') }}" class="btn btn-secondary">返回API密钥列表</a>
+    </div>
+    
+    <div class="info-card" style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+            <div>
+                <span class="info-label">{{ ui_text.key_name }}：</span>
+                <span class="info-value">{{ api_key.name }}</span>
+            </div>
+            <div>
+                <span class="info-label">{{ ui_text.status }}：</span>
+                <span class="info-value">
+                    {% if api_key.is_active %}
+                        <span class="badge badge-success">{{ ui_text.is_active }}</span>
+                    {% else %}
+                        <span class="badge badge-secondary">已撤销</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div>
+                <span class="info-label">{{ ui_text.total_calls }}：</span>
+                <span class="info-value">{{ api_key.total_calls }}</span>
+            </div>
+            <div>
+                <span class="info-label">{{ ui_text.total_tokens_used }}：</span>
+                <span class="info-value">{{ api_key.total_tokens_used }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>{{ ui_text.time }}</th>
+                    <th>{{ ui_text.model_name }}</th>
+                    <th>{{ ui_text.prompt_tokens }}</th>
+                    <th>{{ ui_text.completion_tokens }}</th>
+                    <th>{{ ui_text.total_tokens }}</th>
+                    <th>{{ ui_text.cost_tokens }}</th>
+                    <th>{{ ui_text.status_code }}</th>
+                    <th>{{ ui_text.endpoint }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td>{{ log.model_name }}</td>
+                    <td>{{ log.prompt_tokens }}</td>
+                    <td>{{ log.completion_tokens }}</td>
+                    <td>{{ log.total_tokens }}</td>
+                    <td>{{ log.cost_tokens }}</td>
+                    <td>
+                        {% if log.status_code == 200 %}
+                            <span class="badge badge-success">{{ log.status_code }}</span>
+                        {% else %}
+                            <span class="badge badge-danger">{{ log.status_code }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ log.endpoint|truncate(40) }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center">{{ ui_text.no_records }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}{% if model %}编辑模型{% else %}添加模型{% endif %} - {{ project_name }}{% endblock %}
+
+{% block content %}
+<div class="form-container" style="max-width: 800px;">
+    <h1>{% if model %}编辑模型{% else %}添加模型{% endif %}</h1>
+    
+    <form method="POST" class="form">
+        {{ form.hidden_tag() }}
+        
+        <div class="form-group">
+            <label for="name">{{ ui_text.model_name }} *</label>
+            {{ form.name(class="form-control", placeholder="例如: Qwen3.5-27B") }}
+            {% if form.name.errors %}
+            <div class="error">{{ form.name.errors[0] }}</div>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            <label for="description">{{ ui_text.model_description }}</label>
+            {{ form.description(class="form-control", placeholder="模型描述") }}
+            {% if form.description.errors %}
+            <div class="error">{{ form.description.errors[0] }}</div>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            <label for="api_endpoint">{{ ui_text.api_endpoint }} *</label>
+            {{ form.api_endpoint(class="form-control", placeholder="例如: http://localhost:5000/api/v1/chat/completions") }}
+            {% if form.api_endpoint.errors %}
+            <div class="error">{{ form.api_endpoint.errors[0] }}</div>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            <label for="api_key">{{ ui_text.api_key }}</label>
+            {{ form.api_key(class="form-control", placeholder="例如: sk-xxx... (可选)") }}
+            {% if form.api_key.errors %}
+            <div class="error">{{ form.api_key.errors[0] }}</div>
+            {% endif %}
+            <p class="help-text">模型API端点所需的密钥（如需要）</p>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="price_per_token">{{ ui_text.price_per_token }} *</label>
+                {{ form.price_per_token(class="form-control", placeholder="例如: 0.001") }}
+                {% if form.price_per_token.errors %}
+                <div class="error">{{ form.price_per_token.errors[0] }}</div>
+                {% endif %}
+                <p class="help-text">每个Token的价格（单位：Token）</p>
+            </div>
+            
+            <div class="form-group">
+                <label for="max_tokens_per_request">{{ ui_text.max_tokens_per_request }} *</label>
+                {{ form.max_tokens_per_request(class="form-control", placeholder="例如: 4096") }}
+                {% if form.max_tokens_per_request.errors %}
+                <div class="error">{{ form.max_tokens_per_request.errors[0] }}</div>
+                {% endif %}
+                <p class="help-text">每个请求允许的最大Token数量</p>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>
+                {{ form.is_active() }}
+                {{ ui_text.is_active }}
+            </label>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">{{ ui_text.save }}</button>
+            <a href="{{ url_for('admin.models') }}" class="btn btn-secondary">{{ ui_text.cancel }}</a>
+        </div>
+    </form>
+</div>
+
+<style>
+.form-row {
+    display: flex;
+    gap: 20px;
+}
+.form-row .form-group {
+    flex: 1;
+}
+.help-text {
+    font-size: 12px;
+    color: #6c757d;
+    margin-top: 5px;
+}
+.error {
+    color: #dc3545;
+    font-size: 14px;
+    margin-top: 5px;
+}
+</style>
+{% endblock %}

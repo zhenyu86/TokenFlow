@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}{{ ui_text.api_key_management }} - {{ project_name }}{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="page-header">
+        <h1>{{ ui_text.api_key_management }}</h1>
+    </div>
+    
+    <div class="action-section" style="margin-bottom: 30px;">
+        <h3>创建新API密钥</h3>
+        <form method="POST" action="{{ url_for('user.create_api_key') }}" class="form-inline" style="display: flex; gap: 15px; align-items: center;">
+            <div class="form-group" style="flex: 1; max-width: 400px;">
+                <input type="text" name="name" class="form-control" placeholder="{{ ui_text.key_name }}（例如：我的应用密钥）" required>
+            </div>
+            <button type="submit" class="btn btn-success">{{ ui_text.generate_key }}</button>
+        </form>
+        <p class="help-text" style="margin-top: 10px; color: #6c757d;">
+            密钥创建后请立即保存，页面刷新后将不再显示。
+        </p>
+    </div>
+    
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>{{ ui_text.key_name }}</th>
+                    <th>{{ ui_text.api_key }}</th>
+                    <th>{{ ui_text.status }}</th>
+                    <th>{{ ui_text.created_at }}</th>
+                    <th>{{ ui_text.last_used }}</th>
+                    <th>{{ ui_text.total_calls }}</th>
+                    <th>{{ ui_text.total_tokens_used }}</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for key in keys %}
+                <tr>
+                    <td>
+                        <strong>{{ key.name }}</strong>
+                    </td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <code style="font-size: 13px; font-family: 'Courier New', monospace; background: #f8f9fa; padding: 4px 8px; border-radius: 4px;">
+                                {% if key.key_prefix and key.key_suffix %}
+                                    sk-{{ key.key_prefix }}************{{ key.key_suffix }}
+                                {% else %}
+                                    <!-- Fallback for old keys without prefix/suffix -->
+                                    sk-••••••{{ key.key_hash[-16:] }}
+                                {% endif %}
+                            </code>
+                            <button type="button" class="btn btn-sm btn-outline-primary copy-btn" 
+                                    data-clipboard-text="{% if key.key_prefix and key.key_suffix %}sk-{{ key.key_prefix }}************{{ key.key_suffix }}{% else %}sk-••••••{{ key.key_hash[-16:] }}{% endif %}" 
+                                    title="复制密钥（含星号）">
+                                <span style="font-size: 12px;">复制</span>
+                            </button>
+                        </div>
+                    </td>
+                    <td>
+                        {% if key.is_active %}
+                            <span class="badge badge-success">{{ ui_text.is_active }}</span>
+                        {% else %}
+                            <span class="badge badge-secondary">已撤销</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ key.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>
+                        {% if key.last_used %}
+                            {{ key.last_used.strftime('%Y-%m-%d %H:%M') }}
+                        {% else %}
+                            <span class="text-muted">从未使用</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ key.total_calls }}</td>
+                    <td>{{ key.total_tokens_used }}</td>
+                    <td class="actions">
+                        <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                            {% if key.is_active %}
+                            <form method="POST" action="{{ url_for('user.revoke_api_key', key_id=key.id) }}" class="inline-form" onsubmit="return confirm('确定要撤销API密钥 {{ key.name }} 吗？');">
+                                <button type="submit" class="btn btn-sm btn-warning">{{ ui_text.revoke_key }}</button>
+                            </form>
+                            {% endif %}
+                            <form method="POST" action="{{ url_for('user.delete_api_key', key_id=key.id) }}" class="inline-form" onsubmit="return confirm('确定要永久删除API密钥 {{ key.name }} 吗？此操作不可恢复！');">
+                                <button type="submit" class="btn btn-sm btn-danger">{{ ui_text.delete }}</button>
+                            </form>
+                            <a href="{{ url_for('user.api_key_logs', key_id=key.id) }}" class="btn btn-sm btn-info">{{ ui_text.call_logs }}</a>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center">{{ ui_text.no_records }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="info-section" style="margin-top: 40px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+        <h3>使用说明</h3>
+        <ol style="margin-top: 15px; padding-left: 20px;">
+            <li>创建API密钥后，请妥善保存生成的密钥字符串。</li>
+            <li>在调用API时，请在HTTP请求头中添加：<code>Authorization: Bearer YOUR_API_KEY</code></li>
+            <li>API端点：<code>http://your-domain.com/api/v1/chat/completions</code></li>
+            <li>请求格式请参考OpenAI API格式，支持以下参数：model, messages, max_tokens, temperature等。</li>
+            <li>每次调用将根据模型单价扣除相应的Tokens。</li>
+        </ol>
+        <div style="margin-top: 20px;">
+            <h4>可用模型</h4>
+            <ul style="list-style: none; padding-left: 0;">
+                {% for model in active_models %}
+                <li><strong>{{ model.name }}</strong> - 单价: {{ "%.6f"|format(model.price_per_token) }} Tokens/Token，最大Tokens/请求: {{ model.max_tokens_per_request }}</li>
+                {% else %}
+                <li>暂无可用模型，请联系管理员添加。</li>
+                {% endfor %}
+            </ul>
+        </div>
+     </div>
+</div>
+
+<script>
+// 复制功能
+document.addEventListener('DOMContentLoaded', function() {
+    const copyButtons = document.querySelectorAll('.copy-btn');
+    
+    copyButtons.forEach(button => {
+        // 保存原始状态
+        const originalHTML = button.innerHTML;
+        const originalClasses = Array.from(button.classList);
+        
+        button.addEventListener('click', function() {
+            const textToCopy = this.getAttribute('data-clipboard-text');
+            
+            // 使用现代 Clipboard API
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(textToCopy)
+                    .then(() => {
+                        this.innerHTML = '<span style="font-size: 12px;">已复制</span>';
+                        this.classList.remove(...originalClasses);
+                        this.classList.add('btn-success');
+                        
+                        // 2秒后恢复原状
+                        setTimeout(() => {
+                            this.innerHTML = originalHTML;
+                            this.classList.remove('btn-success');
+                            this.classList.add(...originalClasses);
+                        }, 2000);
+                    })
+                    .catch(err => {
+                        console.error('复制失败: ', err);
+                        alert('复制失败，请手动选择文本复制');
+                    });
+            } else {
+                // 降级方案：使用 document.execCommand
+                const textArea = document.createElement('textarea');
+                textArea.value = textToCopy;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                try {
+                    document.execCommand('copy');
+                    this.innerHTML = '<span style="font-size: 12px;">已复制</span>';
+                    this.classList.remove(...originalClasses);
+                    this.classList.add('btn-success');
+                    
+                    // 2秒后恢复原状
+                    setTimeout(() => {
+                        this.innerHTML = originalHTML;
+                        this.classList.remove('btn-success');
+                        this.classList.add(...originalClasses);
+                    }, 2000);
+                } catch (err) {
+                    console.error('复制失败: ', err);
+                    alert('复制失败，请手动选择文本复制');
+                }
+                
+                document.body.removeChild(textArea);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
